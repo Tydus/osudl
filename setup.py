@@ -1,10 +1,11 @@
 from setuptools import setup
 
-setup(name='YourAppName',
+setup(name='OsuDL',
       version='1.0',
-      description='OpenShift App',
-      author='Your Name',
-      author_email='example@example.com',
-      url='http://www.python.org/sigs/distutils-sig/',
+      description='Osu! Download',
+      author='Tydus Ken',
+      author_email='Tydus@Tydus.org',
+      url='http://Tydus.org',
+      install_requires=['mongoengine>=0.5'],
 #      install_requires=['Django>=1.3'],
      )
