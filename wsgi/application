@@ -114,18 +114,6 @@ def application(env, start_response):
     start_response("301 Moved Permanently",[('Location','data/'+quote(osz_path))])
     return []
 
-if __name__ == '__main__':
-    # This is for test
-    data_dir="../../data"
-
-    # Connect to DB
-    connect('osudl')
-
-	from wsgiref.simple_server import make_server
-	httpd = make_server('localhost', 8051, application)
-	httpd.serve_forever()
-
-else:
-    data_dir=os.environ['OPENSHIFT_DATA_DIR']
-    # Connect to DB
-    connect('osudl',host='127.10.59.129',username='osudl',password='osudl')
+data_dir=os.environ['OPENSHIFT_DATA_DIR']
+# Connect to DB
+connect('osudl',host='127.10.59.129',username='osudl',password='osudl')
