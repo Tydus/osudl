@@ -1,35 +1,117 @@
 #!/usr/bin/python
 import os
 
-virtenv = os.environ['APPDIR'] + '/virtenv/'
-os.environ['PYTHON_EGG_CACHE'] = os.path.join(virtenv, 'lib/python2.6/site-packages')
-virtualenv = os.path.join(virtenv, 'bin/activate_this.py')
 try:
-    execfile(virtualenv, dict(__file__=virtualenv))
-except IOError:
+    virtenv = os.environ['APPDIR'] + '/virtenv/'
+    os.environ['PYTHON_EGG_CACHE'] = os.path.join(virtenv, 'lib/python2.6/site-packages')
+    virtualenv = os.path.join(virtenv, 'bin/activate_this.py')
+    try:
+        execfile(virtualenv, dict(__file__=virtualenv))
+    except IOError:
+        pass
+except Exception:
     pass
 #
 # IMPORTANT: Put any additional includes below this line.  If placed above this
 # line, it's possible required libraries won't be in your searchable path
 # 
+from re import match
+from time import time,sleep
+import urllib
+import urllib2
+from mongoengine import *
+from os import environ
 
-def application(environ, start_response):
+data_dir=os.environ['OPENSHIFT_DATA_DIR']
 
-	ctype = 'text/plain'
-	if environ['PATH_INFO'] == '/health':
-		response_body = "1"
-	elif environ['PATH_INFO'] == '/env':
-		response_body = ['%s: %s' % (key, value)
-                    for key, value in sorted(environ.items())]
-		response_body = '\n'.join(response_body)
-	else:
-		ctype = 'text/html'
-		response_body = "<html><body>Hello, world! from Tydus' cloud.</body></html>"
-	status = '200 OK'
-	response_headers = [('Content-Type', ctype), ('Content-Length', str(len(response_body)))]
-	#
-	start_response(status, response_headers)
-	return [response_body]
+class Osz(Document):
+    name=StringField(required=True,primary_key=True)
+    long_name=StringField()
+    size=IntField()
+    file_path=StringField()
+    last_visit=IntField()
+    l_visit=ListField(EmbeddedDocumentField(Visit))
+    meta={'indexes':['-last_visit']}
+
+class Visit(EmbeddedDocument):
+    time=IntField(required=True)
+    ip=StringField(required=True)
+
+def fetch(n):
+    '''
+    Fetch osz
+
+    n       the string of "http://osu.ppy.sh/d/([0-9]+n?)",
+            for example: "12345" or "12345n"
+
+    ret[0]  the full filename of the osz
+    ret[1]  the content of the file
+
+    FIXME: Many Exceptions could happen here
+    '''
+    form_fields=dict(
+            login="login",
+            username="osu_dl_new",
+            password="123456",
+            redirect="http://osu.ppy.sh/d/"+n
+            )
+    url="http://osu.ppy.sh/forum/ucp.php?mode=login"
+
+    opener=urllib2.build_opener(
+            urllib2.HTTPCookieProcessor(),
+            urllib2.HTTPHandler(debuglevel=1),
+            )
+    req=urllib2.Request(url)
+    res=opener.open(req,urlencode(form_fields))
+    filename=res.info().getheader('Content-Disposition').split('"')[1]
+    return filename,res.read()
+
+def get_osz_path(ip,n):
+    d=Osz.objects({'name':n})
+    if d.count():
+        d=d[0]
+        while not d.size:
+            # It's being fetched now, wait for other workers to finish
+            sleep(3)
+            d.reload()
+
+        d.last_visit=time()
+        d.l_visit.append(Visit(ip=ip,time=d.last_visit))
+        d.save()
+        return d.file_path
+
+    # Indicates we are fetching now
+    d=Osz({'name':n})
+    d.save()
+
+    # Fetch (long time, TODO rewrite with async one here)
+    d.long_name,body=fetch(n)
+    d.size=len(body)
+    d.file_path=d.long_name
+
+    # Write File (FIXME duplicate filename)
+    f=file(data_dir+'/'+d.file_path,'w')
+    f.write(body)
+    f.close()
+
+    # Update DB
+    d.save()
+    return get_osz_pos(ip,n)
+
+def application(env, start_response):
+    if env['REQUEST_METHOD']!='GET':
+        start_response("400 Method Not Allowed",[('Content-Type',"text/plain")])
+        return [""]
+
+    if not match(r'/d/[0-9]+n?',env['PATH_INFO']):
+        start_response("404 Not Found",[('Content-Type',"text/plain")])
+        return [""]
+    n=env['PATH_INFO'][3:]
+
+    osz_pos=get_osz_pos(env['HTTP_X_FORWARDED_FOR'],n)
+
+    start_response("301 Moved Permanently",[('Location','data/'+osz_pos)])
+    return []
 
 #
 # Below for testing only
