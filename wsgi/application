@@ -21,6 +21,7 @@ from urllib import urlencode,quote
 import urllib2
 from mongoengine import *
 from os import environ
+from os.path import isfile
 
 
 class Visit(EmbeddedDocument):
@@ -58,7 +59,7 @@ def fetch(n):
 
     opener=urllib2.build_opener(
             urllib2.HTTPCookieProcessor(),
-            urllib2.HTTPHandler(debuglevel=1),
+            #urllib2.HTTPHandler(debuglevel=1),
             )
     req=urllib2.Request(url)
     res=opener.open(req,urlencode(form_fields))
@@ -78,6 +79,13 @@ def get_osz_path(ip,n):
 
         d.last_visit=time()
         d.l_visit.append(Visit(ip=ip,time=d.last_visit))
+        if not isfile(data_dir+'/'+f.file_path):
+            # It's removed by someone else
+            # Fetch it again (long time, TODO rewrite with async one here)
+            d.long_name,body=fetch(n)
+            d.size=len(body)
+            d.file_path=d.long_name
+
         d.save()
         return d.file_path
 
@@ -90,7 +98,7 @@ def get_osz_path(ip,n):
     d.size=len(body)
     d.file_path=d.long_name
 
-    # Write File (FIXME duplicate filename)
+    # Write File
     f=file(data_dir+'/'+d.file_path,'w')
     f.write(body)
     f.close()
