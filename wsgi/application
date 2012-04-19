@@ -39,9 +39,9 @@ class Osz(Document):
 
 def get_remote_addr(env):
     # Get the real remote address
-    if env.has_key('HTTP_X_FORWARDED_FOR')
+    if env.has_key('HTTP_X_FORWARDED_FOR'):
         return env['HTTP_X_FORWARDED_FOR']
-    if env.has_key('REMOTE_ADDR')
+    if env.has_key('REMOTE_ADDR'):
         return env['REMOTE_ADDR']
     return '0.0.0.0'
 
@@ -67,7 +67,7 @@ def fetch(n,cookie=None):
     if cookie:
         req=urllib2.Request("http://osu.ppy.sh/d/"+n)
         req.add_header('Cookie',cookie)
-        res=opener.open(url)
+        res=opener.open(req)
     else:
         form_fields=dict(
                 login="login",
@@ -94,7 +94,7 @@ def get_osz_path(ip,n,cookie=None):
 
         d.last_visit=time()
         d.l_visit.append(Visit(ip=ip,time=d.last_visit))
-        if not isfile(data_dir+'/'+f.file_path):
+        if not isfile(data_dir+'/'+d.file_path):
             # It's removed by someone else
             # Fetch it again (long time, TODO rewrite with async one here)
             d.long_name,body=fetch(n,cookie)
