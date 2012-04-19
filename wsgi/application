@@ -45,36 +45,43 @@ def get_remote_addr(env):
         return env['REMOTE_ADDR']
     return '0.0.0.0'
 
-def fetch(n):
+def fetch(n,cookie=None):
     '''
     Fetch osz
 
     n       the string of "http://osu.ppy.sh/d/([0-9]+n?)",
             for example: "12345" or "12345n"
+    cookie  if specified, fetch using the cookie,
+            if not, use built-in account to login and fetch
 
     ret[0]  the full filename of the osz
     ret[1]  the content of the file
 
     FIXME: Many Exceptions could happen here
     '''
-    form_fields=dict(
-            login="login",
-            username="osu_dl_new",
-            password="123456",
-            redirect="http://osu.ppy.sh/d/"+n
-            )
-    url="http://osu.ppy.sh/forum/ucp.php?mode=login"
-
     opener=urllib2.build_opener(
             urllib2.HTTPCookieProcessor(),
             #urllib2.HTTPHandler(debuglevel=1),
             )
-    req=urllib2.Request(url)
-    res=opener.open(req,urlencode(form_fields))
+
+    if cookie:
+        req=urllib2.Request("http://osu.ppy.sh/d/"+n)
+        req.add_header('Cookie',cookie)
+        res=opener.open(url)
+    else:
+        form_fields=dict(
+                login="login",
+                username="osu_dl_new",
+                password="123456",
+                redirect="http://osu.ppy.sh/d/"+n
+                )
+        url="http://osu.ppy.sh/forum/ucp.php?mode=login"
+        res=opener.open(url,urlencode(form_fields))
+
     filename=res.info().getheader('Content-Disposition').split('"')[1]
     return filename,res.read()
 
-def get_osz_path(ip,n):
+def get_osz_path(ip,n,cookie=None):
 
     # Check if we has it
     d=Osz.objects(name=n)
@@ -90,7 +97,7 @@ def get_osz_path(ip,n):
         if not isfile(data_dir+'/'+f.file_path):
             # It's removed by someone else
             # Fetch it again (long time, TODO rewrite with async one here)
-            d.long_name,body=fetch(n)
+            d.long_name,body=fetch(n,cookie)
             d.size=len(body)
             d.file_path=d.long_name
 
@@ -102,7 +109,7 @@ def get_osz_path(ip,n):
     d.save()
 
     # Fetch (long time, TODO rewrite with async one here)
-    d.long_name,body=fetch(n)
+    d.long_name,body=fetch(n,cookie)
     d.size=len(body)
     d.file_path=d.long_name
 
@@ -125,7 +132,7 @@ def application(env, start_response):
         return [""]
     n=env['PATH_INFO'][3:]
 
-    osz_path=get_osz_path(get_remote_addr(env),n)
+    osz_path=get_osz_path(get_remote_addr(env),n,env.get('HTTP_COOKIE'))
 
     start_response("301 Moved Permanently",[('Location','data/'+quote(osz_path))])
     return []
