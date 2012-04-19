@@ -131,6 +131,10 @@ def application(env, start_response):
         start_response("404 Not Found",[('Content-Type',"text/plain")])
         return [""]
     n=env['PATH_INFO'][3:]
+    if n=="00000":
+        import pprint
+        start_response("200 OK",[('Content-Type',"text/plain")])
+        return [pprint.PrettyPrinter().pformat(env)]
 
     osz_path=get_osz_path(get_remote_addr(env),n,env.get('HTTP_COOKIE'))
 
