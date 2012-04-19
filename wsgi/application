@@ -23,7 +23,6 @@ from mongoengine import *
 from os import environ
 from os.path import isfile
 
-
 class Visit(EmbeddedDocument):
     time=IntField(required=True)
     ip=StringField(required=True)
@@ -36,6 +35,11 @@ class Osz(Document):
     last_visit=IntField()
     l_visit=ListField(EmbeddedDocumentField(Visit))
     meta={'indexes':['-last_visit']}
+
+def DownQuotaExceededException(Exception):
+    def __init__(self,content):
+        Exception.__ini__(self)
+        self.content=content
 
 def get_remote_addr(env):
     # Get the real remote address
@@ -78,7 +82,11 @@ def fetch(n,cookie=None):
         url="http://osu.ppy.sh/forum/ucp.php?mode=login"
         res=opener.open(url,urlencode(form_fields))
 
-    filename=res.info().getheader('Content-Disposition').split('"')[1]
+    try:
+        filename=res.info().getheader('Content-Disposition').split('"')[1]
+    except Exception:
+        raise DownQuotaExceededException(res.read())
+
     return filename,res.read()
 
 def get_osz_path(ip,n,cookie=None):
@@ -92,15 +100,20 @@ def get_osz_path(ip,n,cookie=None):
             sleep(3)
             d.reload()
 
-        d.last_visit=time()
-        d.l_visit.append(Visit(ip=ip,time=d.last_visit))
         if not isfile(data_dir+'/'+d.file_path):
             # It's removed by someone else
+
+            # Indicates we are fetching
+            d.size=None
+            d.save()
+
             # Fetch it again (long time, TODO rewrite with async one here)
             d.long_name,body=fetch(n,cookie)
             d.size=len(body)
             d.file_path=d.long_name
 
+        d.last_visit=time()
+        d.l_visit.append(Visit(ip=ip,time=d.last_visit))
         d.save()
         return d.file_path
 
@@ -136,9 +149,13 @@ def application(env, start_response):
         start_response("200 OK",[('Content-Type',"text/plain")])
         return [pprint.PrettyPrinter().pformat(env)]
 
-    osz_path=get_osz_path(get_remote_addr(env),n,env.get('HTTP_COOKIE'))
+    try:
+        osz_path=get_osz_path(get_remote_addr(env),n,env.get('HTTP_COOKIE'))
+    except DownQuotaExceededException, e:
+        start_response("200 OK",[('Content-Type',"text/html")])
+        return [e.content]
 
-    start_response("301 Moved Permanently",[('Location','data/'+quote(osz_path))])
+    start_response("301 Moved Permanently",[('Location',"data/"+quote(osz_path))])
     return []
 
 data_dir=os.environ['OPENSHIFT_DATA_DIR']
