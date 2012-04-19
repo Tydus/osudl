@@ -37,6 +37,14 @@ class Osz(Document):
     l_visit=ListField(EmbeddedDocumentField(Visit))
     meta={'indexes':['-last_visit']}
 
+def get_remote_addr(env):
+    # Get the real remote address
+    if env.has_key('HTTP_X_FORWARDED_FOR')
+        return env['HTTP_X_FORWARDED_FOR']
+    if env.has_key('REMOTE_ADDR')
+        return env['REMOTE_ADDR']
+    return '0.0.0.0'
+
 def fetch(n):
     '''
     Fetch osz
@@ -117,7 +125,7 @@ def application(env, start_response):
         return [""]
     n=env['PATH_INFO'][3:]
 
-    osz_path=get_osz_path(env.get('HTTP_X_FORWARDED_FOR','0.0.0.0'),n)
+    osz_path=get_osz_path(get_remote_addr(env),n)
 
     start_response("301 Moved Permanently",[('Location','data/'+quote(osz_path))])
     return []
