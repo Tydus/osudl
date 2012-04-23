@@ -1,12 +1,13 @@
 #!/usr/bin/python
 
-from time import time
+from time import time,ctime
 from mongoengine import *
 from os.path import isfile
 from urllib import quote
 
 from tornado.web import Application,RequestHandler,asynchronous,HTTPError
 from tornado.httpclient import AsyncHTTPClient
+from tornado.httpserver import HTTPServer
 from tornado.ioloop import IOLoop
 
 class Visit(EmbeddedDocument):
@@ -22,6 +23,9 @@ class Osz(Document):
     l_visit=ListField(EmbeddedDocumentField(Visit))
     meta={'indexes':['-last_visit']}
 
+def debug(s,*args):
+    print s%tuple(args)
+
 fetching={}
 
 def fireAllandRemove(n,*args,**kwargs):
@@ -34,16 +38,20 @@ class OsuDl(RequestHandler):
     def fetch(self,n):
         global fetching
         if not fetching.get(n):
+            debug("start fetching %s",n)
             fetching[n]=[]
             def func(response):
                 global fetching
 
+                debug("finish fetching %s",n)
                 if response.error:
+                    debug("fetch %s failed: ",n,response.error)
                     return fireAllandRemove(n,error=response.error)
 
                 if not response.headers.get('Content-Disposition'):
                     # Failed (Down Quota Exceeded?)
                     # Fire subscripters for failure
+                    debug("fetch %s failed: no Content-Disposition",n)
                     return fireAllandRemove(n,failed=True,body=response.body)
 
                 # Write DB
@@ -102,14 +110,14 @@ class OsuDl(RequestHandler):
         # Check if we has one in db
         d=Osz.objects(name=n)
         if d.count()==0:
-            debug("No record in db for %s"%n)
+            debug("No record in db for %s",n)
             self.fetch(n)
             return
 
         d=d[0]
         if not isfile(data_dir+'/'+d.file_path):
             # It's removed by someone else
-            debug("File of %s doesn't exists"%s)
+            debug("File of %s doesn't exists",s)
             # Fetch it again
             self.fetch(n)
             return
@@ -118,6 +126,7 @@ class OsuDl(RequestHandler):
         d.last_visit=time()
         d.l_visit.append(Visit(ip=self.request.remote_ip,time=d.last_visit))
         d.save()
+        debug("%s visited %s at %s",self.request.remote_ip,n,ctime(d.last_visit))
 
         # Response to client
         self.redirect('http://osz-test.tyimg.info/'+quote(d.file_path),permanent=True)
@@ -128,6 +137,5 @@ data_dir="osz"
 connect('osudl')
 
 # Run Server
-application=Application([(r'/d/([0-9]+n?)',OsuDl)])
-application.listen(8888)
+HTTPServer(Application([(r'/d/([0-9]+n?)',OsuDl)]),xheaders=True).listen(8888)
 IOLoop.instance().start()
