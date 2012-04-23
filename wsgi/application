@@ -5,7 +5,7 @@ from mongoengine import *
 from os.path import isfile
 from urllib import quote
 
-from tornado.web import Application,RequestHandler,asynchronous
+from tornado.web import Application,RequestHandler,asynchronous,HTTPError
 from tornado.ioloop import IOLoop
 
 class Visit(EmbeddedDocument):
@@ -69,9 +69,9 @@ class OsuDl(RequestHandler):
     
     @asynchronous
     def get(self,n):
-
-        import pdb
-        pdb.set_trace()
+        # Check if request has cookie
+        if not self.request.headers.get('Cookie'):
+            raise HTTPError(401)
 
         # Check if we has one in db
         d=Osz.objects(name=n)
