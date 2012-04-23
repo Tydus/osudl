@@ -10,5 +10,4 @@ setup(name='OsuDL',
           'mongoengine>=0.5',
           'tornado>=2.0',
           ],
-#      install_requires=['Django>=1.3'],
      )
