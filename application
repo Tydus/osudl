@@ -118,7 +118,7 @@ class OsuDl(RequestHandler):
         d=d[0]
         if not isfile(data_dir+'/'+d.file_path):
             # It's removed by someone else
-            debug("File of %s doesn't exists",s)
+            debug("File of %s doesn't exists",n)
             # Fetch it again
             self.fetch(n)
             return
