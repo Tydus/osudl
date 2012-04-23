@@ -1,0 +1,34 @@
+server {
+	listen 0.0.0.0:80;
+	listen [::]:80;
+	server_name osu.ppy.sh;
+	root /var/www/osudl.tk;
+	#index index.cgi;
+	location ~ ^/d/[0-9]*n*$ {
+		proxy_pass http://localhost:8888;
+		proxy_redirect off;
+		proxy_set_header Host $host;
+		proxy_set_header X-Real-IP $remote_addr;
+		proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+		proxy_read_timeout 300s;
+
+	}
+	location / {
+		proxy_pass http://osu.ppy.sh;
+		proxy_redirect off;
+		proxy_set_header Host $host;
+		proxy_set_header X-Real-IP $remote_addr;
+		proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+	}
+}
+server {
+	listen 0.0.0.0:80;
+	listen [::]:80;
+	server_name osz.tyimg.info;
+	server_name osz-test.tyimg.info;
+	root /var/www/osudl.tk/wsgi/osz;
+	location / {
+		autoindex on;
+		expires 30d;
+	}
+}
