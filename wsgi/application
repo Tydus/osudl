@@ -6,6 +6,7 @@ from os.path import isfile
 from urllib import quote
 
 from tornado.web import Application,RequestHandler,asynchronous,HTTPError
+from tornado.httpclient import AsyncHTTPClient
 from tornado.ioloop import IOLoop
 
 class Visit(EmbeddedDocument):
@@ -34,8 +35,14 @@ class OsuDl(RequestHandler):
     def fetch(self,n):
         global fetching
         if not fetching.get(n):
+            import pdb
+            pdb.set_trace()
+
             fetching[n]=[]
             def func(response):
+                import pdb
+                pdb.set_trace()
+
                 global fetching
                 # Insert DB
                 d=Osz.objects(name=n)
@@ -61,11 +68,17 @@ class OsuDl(RequestHandler):
             cookie=self.request.headers['Cookie']
             AsyncHTTPClient().fetch(
                         'http://osu.ppy.sh/d/'+n,
-                        headers={'Cookie':cookie},
-                        callback=func
+                        headers=self.request.headers,
+                        #headers={
+                        #    'Cookie':self.request.headers['Cookie'],
+                        #    'X-Real-IP':self.request.remote_ip,
+                        #    },
+                        # Set request timeout to 5min
+                        request_timeout=300,
+                        callback=func,
                     )
 
-        db[n].append(self.get)
+        fetching[n].append(self.get)
     
     @asynchronous
     def get(self,n):
