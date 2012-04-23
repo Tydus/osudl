@@ -22,33 +22,37 @@ class Osz(Document):
     l_visit=ListField(EmbeddedDocumentField(Visit))
     meta={'indexes':['-last_visit']}
 
-# FIXME Not Implemented yet
-class DownQuotaExceededException(Exception):
-    def __init__(self,content):
-        Exception.__init__(self)
-        self.content=content
-
 fetching={}
+
+def fireAllandRemove(n,*args,**kwargs):
+    global fetching
+    for cb in fetching[n]:
+        cb(n,*args,**kwargs)
 
 class OsuDl(RequestHandler):
 
     def fetch(self,n):
         global fetching
         if not fetching.get(n):
-            import pdb
-            pdb.set_trace()
-
             fetching[n]=[]
             def func(response):
-                import pdb
-                pdb.set_trace()
-
                 global fetching
-                # Insert DB
+
+                if response.error:
+                    return fireAllandRemove(n,error=response.error)
+
+                if not response.headers.get('Content-Disposition'):
+                    # Failed (Down Quota Exceeded?)
+                    # Fire subscripters for failure
+                    return fireAllandRemove(n,failed=True,body=response.body)
+
+                # Write DB
                 d=Osz.objects(name=n)
                 if d.count():
+                    # We already has one
                     d=d[0]
                 else:
+                    # Create a new one
                     d=Osz(name=n)
                 d.long_name=response.headers['Content-Disposition'].split('"')[1]
                 d.size=len(response.body)
@@ -61,9 +65,7 @@ class OsuDl(RequestHandler):
                 f.close()
 
                 # Fire subscripters, get again
-                for get in fetching[n]:
-                    get(n)
-                del fetching[n]
+                fireAllandRemove(n)
 
             cookie=self.request.headers['Cookie']
             AsyncHTTPClient().fetch(
@@ -78,23 +80,36 @@ class OsuDl(RequestHandler):
                         callback=func,
                     )
 
-        fetching[n].append(self.get)
+        fetching[n].append(self.callback)
+
+    def callback(self,n,failed=False,body=None,error=None):
+        if error:
+            raise error
+        if not failed:
+            return self.get(n)
+        
+        # Failed
+        self.write(body)
+        self.finish()
     
     @asynchronous
     def get(self,n):
         # Check if request has cookie
         if not self.request.headers.get('Cookie'):
+            debug("No Cookie")
             raise HTTPError(401)
 
         # Check if we has one in db
         d=Osz.objects(name=n)
         if d.count()==0:
+            debug("No record in db for %s"%n)
             self.fetch(n)
             return
 
         d=d[0]
         if not isfile(data_dir+'/'+d.file_path):
             # It's removed by someone else
+            debug("File of %s doesn't exists"%s)
             # Fetch it again
             self.fetch(n)
             return
