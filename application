@@ -130,7 +130,7 @@ class OsuDl(RequestHandler):
         debug("%s visited %s at %s",self.request.remote_ip,n,ctime(d.last_visit))
 
         # Response to client
-        self.redirect('http://osz-test.tyimg.info/'+quote(d.file_path),permanent=True)
+        self.redirect('http://osz.tyimg.info/'+quote(d.file_path),permanent=True)
         #self.finish()
         
 data_dir="osz"
