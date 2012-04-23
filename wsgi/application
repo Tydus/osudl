@@ -32,6 +32,7 @@ def fireAllandRemove(n,*args,**kwargs):
     global fetching
     for cb in fetching[n]:
         cb(n,*args,**kwargs)
+    del fetching[n]
 
 class OsuDl(RequestHandler):
 
