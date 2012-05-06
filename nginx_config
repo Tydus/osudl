@@ -2,6 +2,7 @@ server {
 	listen 0.0.0.0:80;
 	listen [::]:80;
 	server_name osu.ppy.sh;
+	server_name w.osu.ppy.sh;
 	root /var/www/osudl.tk;
 	#index index.cgi;
 	location ~ ^/d/[0-9]*n*$ {
@@ -14,13 +15,18 @@ server {
 
 	}
 	location / {
-		proxy_pass http://osu.ppy.sh;
+		resolver 8.8.8.8;
+		proxy_pass http://$host;
 		proxy_redirect off;
 		proxy_set_header Host $host;
 		proxy_set_header X-Real-IP $remote_addr;
 		proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+		
+		sub_filter '<td width=33%></td>' '<td width=33%>OsuDl is © <a href="http://tydus.org" target="_blank">Tydus</a> 2012</td>';
+		#sub_filter_types text/html;
 	}
 }
+
 server {
 	listen 0.0.0.0:80;
 	listen [::]:80;
