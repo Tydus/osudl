@@ -9,5 +9,6 @@ setup(name='OsuDL',
       install_requires=[
           'mongoengine>=0.5',
           'tornado>=2.0',
+          'argparse>=1.0',
           ],
      )
