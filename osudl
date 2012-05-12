@@ -2,6 +2,7 @@
 
 from time import time,ctime,gmtime
 from mongoengine import *
+from mongoengine.connection import ConnectionError
 from sys import stderr
 from os import makedirs
 from os.path import isfile, isdir
@@ -192,15 +193,39 @@ def main():
         makedirs(osz_dir)
 
     # Connect to DB
-    connect(         args.db_name,
-            host    =args.db_host,
-            port    =args.db_port,
-            username=args.db_user,
-            password=args.db_pass,
-           )
+    try:
+        connect(         args.db_name,
+                host    =args.db_host,
+                port    =args.db_port,
+                username=args.db_user,
+                password=args.db_pass,
+               )
+    except ConnectionError:
+        log(LOG_FATAL, 'Cannot connect to DB at mongodb://%s:%d/%s'%(
+            args.db_host,
+            args.db_port,
+            args.db_name,
+           ))
+        exit(-1)
 
     # Run Server
-    HTTPServer(Application([(r'/d/([0-9]+n?)',OsuDl)]),xheaders=True).listen(args.listen)
+    server=HTTPServer(Application([(r'/d/([0-9]+n?)',OsuDl)]), xheaders=True)
+    try:
+        server.listen(args.listen)
+    except Exception:
+        log(LOG_FATAL, 'Cannot listen at 127.0.0.1:%d', args.listen)
+        exit(-1)
+
+    log(LOG_INFO, '*'*80)
+    log(LOG_INFO, 'OsuDl Server Started')
+    log(LOG_INFO, 'Listening at 127.0.0.1:%d', args.listen)
+    log(LOG_INFO, 'Daemon: %s', not os.no_fork)
+    log(LOG_INFO, 'Log File: %s', args.log_file if args.log_file != '-' else '<stderr>')
+    log(LOG_INFO, 'Log Verbosity: %d', verbosity)
+    log(LOG_INFO, 'osz Cache Dir: %s', osz_dir)
+    log(LOG_INFO, 'osz Download URL Prefix: %s', url_prefix)
+    log(LOG_INFO, '*'*80)
+
     IOLoop.instance().start()
 
 if __name__=='__main__':
