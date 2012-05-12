@@ -19,6 +19,7 @@ from tornado.ioloop import IOLoop
 class Visit(EmbeddedDocument):
     time=IntField(required=True)
     ip=StringField(required=True)
+    uid=IntField(required=True)
 
 class Osz(Document):
     name=StringField(required=True,primary_key=True)
@@ -141,10 +142,19 @@ class OsuDl(RequestHandler):
             return
 
         # Log visit
+        uid=int(self.request.cookies['phpbb3_2cjk5_u'].value)
+
         d.last_visit=time()
-        d.l_visit.append(Visit(ip=self.request.remote_ip,time=d.last_visit))
+        d.l_visit.append(Visit(ip=self.request.remote_ip,time=d.last_visit,uid=uid))
         d.save()
-        log(LOG_VERBOSE, "%s visited %s at %s",self.request.remote_ip,n,strtime(d.last_visit))
+        log(
+                LOG_VERBOSE,
+                "%d@%s visited %s at %s",
+                uid,
+                self.request.remote_ip,
+                n,
+                strtime(d.last_visit),
+           )
 
         # Response to client
         self.redirect(url_prefix+quote(d.file_path),permanent=True)
