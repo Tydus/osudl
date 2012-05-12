@@ -176,7 +176,7 @@ def main():
 
     # Fork
     if not args.no_fork and fork():
-        return
+        exit(0)
 
     global logfd, verbosity, osz_dir, url_prefix
     # Assign Log File Descriptor
