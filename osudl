@@ -29,7 +29,7 @@ class Osz(Document):
     meta={'indexes':['-last_visit']}
 
 def strtime(tm=time()):
-    return "%04d-%02d-%02d %02d:%02d:%02d",gmtime(tm)[:6]
+    return "%04d-%02d-%02d %02d:%02d:%02d"%gmtime(tm)[:6]
 
 # Log
 LOG_FATAL=-1
@@ -39,7 +39,7 @@ LOG_INFO=2
 LOG_VERBOSE=3
 def log(level,s,*args):
     if level<=verbosity:
-        print >>logfd,"[%19s][%d]"%(strtime,level)+s%tuple(args)
+        print >>logfd,"[%19s][%d]"%(strtime(),level)+s%tuple(args)
 
 # Indicates which ones are Fetching
 fetching={}
