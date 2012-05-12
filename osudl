@@ -8,6 +8,7 @@ from os import makedirs
 from os.path import isfile, isdir
 from urllib import quote
 from argparse import ArgumentParser
+from socket import error as SocketError
 
 from tornado.web import Application,RequestHandler,asynchronous,HTTPError
 from tornado.httpclient import AsyncHTTPClient
@@ -220,7 +221,7 @@ def main():
     server=HTTPServer(Application([(r'/d/([0-9]+n?)',OsuDl)]), xheaders=True)
     try:
         server.listen(args.listen)
-    except Exception:
+    except SocketError:
         log(LOG_FATAL, 'Cannot listen at 127.0.0.1:%d', args.listen)
         exit(-1)
 
