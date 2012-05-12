@@ -170,9 +170,6 @@ def parse_args():
 def main():
     args=parse_args()
 
-    import pdb
-    pdb.set_trace()
-
     # Fork
     if not args.no_fork and fork():
         return
