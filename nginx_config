@@ -30,7 +30,7 @@ server {
 	listen [::]:80;
 	server_name osz.tyimg.info;
 	server_name osz-test.tyimg.info;
-	root /var/www/osudl.tk/osz;
+	root /data/osudl;
 	location / {
 		autoindex on;
 		expires 30d;
