@@ -227,7 +227,7 @@ def main():
     log(LOG_INFO, '*'*80)
     log(LOG_INFO, 'OsuDl Server Started')
     log(LOG_INFO, 'Listening at 127.0.0.1:%d', args.listen)
-    log(LOG_INFO, 'Daemon: %s', not os.no_fork)
+    log(LOG_INFO, 'Daemon: %s', not args.no_fork)
     log(LOG_INFO, 'Log File: %s', args.log_file if args.log_file != '-' else '<stderr>')
     log(LOG_INFO, 'Log Verbosity: %d', verbosity)
     log(LOG_INFO, 'osz Cache Dir: %s', osz_dir)
