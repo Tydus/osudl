@@ -86,7 +86,7 @@ class OsuDl(RequestHandler):
                 d.save()
 
                 # Write File
-                f=file(osz_dir+'/'+d.file_path,'w')
+                f=file(osz_dir+'/'+d.file_path,'wb')
                 f.write(response.body)
                 f.close()
 
