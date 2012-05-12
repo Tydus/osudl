@@ -3,7 +3,8 @@
 from time import time,ctime,gmtime
 from mongoengine import *
 from sys import stderr
-from os.path import isfile
+from os import makedirs
+from os.path import isfile, isdir
 from urllib import quote
 from argparse import ArgumentParser
 
@@ -186,6 +187,10 @@ def main():
     # Osz Directory and url prefix
     osz_dir=args.osz_dir
     url_prefix=args.osz_url_prefix
+
+    # Ensure osz_dir is usable
+    if not path.isdir(osz_dir):
+        makedirs(osz_dir)
 
     # Connect to DB
     connect(         args.db_name,
