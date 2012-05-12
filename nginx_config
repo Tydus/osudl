@@ -3,8 +3,6 @@ server {
 	listen [::]:80;
 	server_name osu.ppy.sh;
 	server_name w.osu.ppy.sh;
-	root /var/www/osudl.tk;
-	#index index.cgi;
 	location ~ ^/d/[0-9]*n*$ {
 		proxy_pass http://localhost:8888;
 		proxy_redirect off;
