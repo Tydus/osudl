@@ -18,5 +18,9 @@ Install:
     # Enable the site in nginx
     ln -s nginx_config /etc/nginx/sites-enabled/osudl
 
+    # Run the Service
+    ./osudl
+
     # Restart nginx
     service nginx restart
+
