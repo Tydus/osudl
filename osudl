@@ -4,7 +4,7 @@ from time import time,ctime,gmtime
 from mongoengine import *
 from mongoengine.connection import ConnectionError
 from sys import stderr
-from os import makedirs
+from os import makedirs, fork
 from os.path import isfile, isdir
 from urllib import quote
 from argparse import ArgumentParser
