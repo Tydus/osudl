@@ -1,0 +1,22 @@
+OsuDl -- Osu! Reverse Proxy and Beatmap Offline Downloader
+
+Author: Tydus Ken <http://tydus.org>
+
+Prerequisities:
+    Linux kernel 2.6+
+    Python 2.6+ (with setuptools)
+    Nginx 0.7+ (must be compiled with --with-http-sub-module)
+    MongoDB 1.6+
+
+Install:
+    # Install
+    python setup.py install
+
+    # Modify your configs
+    vi nginx_config
+
+    # Enable the site in nginx
+    ln -s nginx_config /etc/nginx/sites-enabled/osudl
+
+    # Restart nginx
+    service nginx restart
