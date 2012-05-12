@@ -27,6 +27,9 @@ class Osz(Document):
     l_visit=ListField(EmbeddedDocumentField(Visit))
     meta={'indexes':['-last_visit']}
 
+def strtime(tm=time()):
+    return "%04d-%02d-%02d %02d:%02d:%02d",gmtime(tm)[:6]
+
 # Log
 LOG_FATAL=-1
 LOG_ERROR=0
@@ -34,9 +37,8 @@ LOG_WARNING=1
 LOG_INFO=2
 LOG_VERBOSE=3
 def log(level,s,*args):
-    if level<verbosity:
-        "%04d-%02d-%02d %02d:%02d:%02d",gmtime()[:6]
-        print >>logfd,"[%15s][%d]"%(date(),level)+s%tuple(args)
+    if level<=verbosity:
+        print >>logfd,"[%19s][%d]"%(strtime,level)+s%tuple(args)
 
 # Indicates which ones are Fetching
 fetching={}
@@ -52,20 +54,20 @@ class OsuDl(RequestHandler):
     def fetch(self,n):
         global fetching
         if not fetching.get(n):
-            debug("start fetching %s",n)
+            log(LOG_VERBOSE, "start fetching %s",n)
             fetching[n]=[]
             def func(response):
                 global fetching
 
-                debug("finish fetching %s",n)
+                log(LOG_VERBOSE, "finish fetching %s",n)
                 if response.error:
-                    debug("fetch %s failed: ",n,response.error)
+                    log(LOG_WARNING, "fetch %s failed: ",n,response.error)
                     return fireAllandRemove(n,error=response.error)
 
                 if not response.headers.get('Content-Disposition'):
                     # Failed (Down Quota Exceeded?)
                     # Fire subscripters for failure
-                    debug("fetch %s failed: no Content-Disposition",n)
+                    log(LOG_VERBOSE, "fetch %s failed: no Content-Disposition",n)
                     return fireAllandRemove(n,failed=True,body=response.body)
 
                 # Write DB
@@ -118,20 +120,20 @@ class OsuDl(RequestHandler):
     def get(self,n):
         # Check if request has cookie
         if not self.request.headers.get('Cookie'):
-            debug("No Cookie")
+            log(LOG_WARNING, "No Cookie in request from %s", request.remote_ip)
             raise HTTPError(401)
 
         # Check if we has one in db
         d=Osz.objects(name=n)
         if d.count()==0:
-            debug("No record in db for %s",n)
+            log(LOG_INFO, "No record in db for %s",n)
             self.fetch(n)
             return
 
         d=d[0]
         if not isfile(osz_dir+'/'+d.file_path):
             # It's removed by someone else
-            debug("File of %s doesn't exists",n)
+            log(LOG_INFO, "File of %s doesn't exists",n)
             # Fetch it again
             self.fetch(n)
             return
@@ -140,7 +142,7 @@ class OsuDl(RequestHandler):
         d.last_visit=time()
         d.l_visit.append(Visit(ip=self.request.remote_ip,time=d.last_visit))
         d.save()
-        debug("%s visited %s at %s",self.request.remote_ip,n,ctime(d.last_visit))
+        log(LOG_VERBOSE, "%s visited %s at %s",self.request.remote_ip,n,strtime(d.last_visit))
 
         # Response to client
         self.redirect(url_prefix+quote(d.file_path),permanent=True)
@@ -151,7 +153,7 @@ def parse_args():
     ap.add_argument('-l','--listen', help='Listen port',default=8888,type=int)
 
     ap.add_argument('--no-fork', help='Run in forground, for debug use',action='store_true')
-    ap.add_argument('-v','--verbose', help='Run in verbose mode, use more to be more verbosity',action='count',default=LOG_WARNING)
+    ap.add_argument('-v','--verbose', help='Run in verbose mode, use more to be more verbosity',action='count',default=LOG_INFO)
     ap.add_argument('-q','--quiet', help='Run in quiet mode',action='count',default=0)
     #ap.add_argument('-p','--pid-file', help='PID file',default='/var/run/osudl.pid')
     ap.add_argument('--log-file', help='Log file, use - for stderr',default='/var/log/osudl.log')
