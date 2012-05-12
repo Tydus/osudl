@@ -32,11 +32,11 @@ def strtime(tm=time()):
     return "%04d-%02d-%02d %02d:%02d:%02d"%gmtime(tm)[:6]
 
 # Log
-LOG_FATAL=-1
-LOG_ERROR=0
-LOG_WARNING=1
-LOG_INFO=2
-LOG_VERBOSE=3
+LOG_FATAL=0
+LOG_ERROR=1
+LOG_WARNING=2
+LOG_INFO=3
+LOG_VERBOSE=4
 def log(level,s,*args):
     if level<=verbosity:
         print >>logfd,"[%19s][%d]"%(strtime(),level)+s%tuple(args)
