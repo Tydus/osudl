@@ -179,7 +179,11 @@ def main():
 
     global logfd, verbosity, osz_dir, url_prefix
     # Assign Log File Descriptor
-    logfd=open(args.log_file,'a') if args.log_file != '-' else stderr
+    try:
+        logfd=open(args.log_file,'a') if args.log_file != '-' else stderr
+    except Exception:
+        print >>stderr, 'FATAL: Cannot write to Log file %s'%args.log_file
+        exit(-1)
 
     # Calc verbosity
     verbosity=args.verbose-args.quiet
@@ -189,8 +193,12 @@ def main():
     url_prefix=args.osz_url_prefix
 
     # Ensure osz_dir is usable
-    if not path.isdir(osz_dir):
-        makedirs(osz_dir)
+    if not isdir(osz_dir):
+        try:
+            makedirs(osz_dir)
+        except Exception:
+            log(LOG_FATAL, 'Cannot create Osz dir %s'%osz_dir)
+            exit(-1)
 
     # Connect to DB
     try:
