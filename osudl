@@ -145,7 +145,7 @@ class OsuDl(RequestHandler):
         d.last_visit=time()
         d.l_visit.append(Visit(ip=self.request.remote_ip,time=d.last_visit))
         d.save()
-        log(LOG_VERBOSE, "%s visited %s at %s",self.request.remote_ip,n,strtime(d.last_visit))
+        log(LOG_VERBOSE, "%s visited %s",self.request.remote_ip,n)
 
         # Response to client
         self.redirect(url_prefix+quote(d.file_path),permanent=True)
