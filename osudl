@@ -41,6 +41,7 @@ LOG_VERBOSE=4
 def log(level,s,*args):
     if level<=verbosity:
         print >>logfd,"[%19s][%d]"%(strtime(),level)+s%tuple(args)
+        logfd.flush()
 
 # Indicates which ones are Fetching
 fetching={}
