@@ -147,7 +147,7 @@ class OsuDl(RequestHandler):
 def parse_args():
     ap=ArgumentParser(description='OsuDl Server')
 
-    ap.add_argument('-l','--listen', help='Listen port',default='8888')
+    ap.add_argument('-l','--listen', help='Listen port',default=8888,type=int)
 
     ap.add_argument('--no-fork', help='Run in forground, for debug use',action='store_true')
     ap.add_argument('-v','--verbose', help='Run in verbose mode, use more to be more verbosity',action='count',default=LOG_WARNING)
