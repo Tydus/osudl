@@ -29,8 +29,8 @@ class Osz(Document):
     l_visit=ListField(EmbeddedDocumentField(Visit))
     meta={'indexes':['-last_visit']}
 
-def strtime(tm=time()):
-    return "%04d-%02d-%02d %02d:%02d:%02d"%gmtime(tm)[:6]
+def strtime(tm=None):
+    return "%04d-%02d-%02d %02d:%02d:%02d"%gmtime(tm or time())[:6]
 
 # Log
 LOG_FATAL=0
