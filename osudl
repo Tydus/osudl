@@ -4,7 +4,7 @@ from time import time,ctime,gmtime
 from mongoengine import *
 from mongoengine.connection import ConnectionError
 from sys import stderr
-from os import makedirs
+from os import makedirs, fork
 from os.path import isfile, isdir
 from urllib import quote
 from argparse import ArgumentParser
@@ -30,8 +30,8 @@ class Osz(Document):
     l_visit=ListField(EmbeddedDocumentField(Visit))
     meta={'indexes':['-last_visit']}
 
-def strtime(tm=time()):
-    return "%04d-%02d-%02d %02d:%02d:%02d"%gmtime(tm)[:6]
+def strtime(tm=None):
+    return "%04d-%02d-%02d %02d:%02d:%02d"%gmtime(tm or time())[:6]
 
 # Log
 LOG_FATAL=0
@@ -42,6 +42,7 @@ LOG_VERBOSE=4
 def log(level,s,*args):
     if level<=verbosity:
         print >>logfd,"[%19s][%d]"%(strtime(),level)+s%tuple(args)
+        logfd.flush()
 
 # Indicates which ones are Fetching
 fetching={}
@@ -149,11 +150,10 @@ class OsuDl(RequestHandler):
         d.save()
         log(
                 LOG_VERBOSE,
-                "%d@%s visited %s at %s",
+                "%d@%s visited %s",
                 uid,
                 self.request.remote_ip,
                 n,
-                strtime(d.last_visit),
            )
 
         # Response to client
@@ -186,7 +186,7 @@ def main():
 
     # Fork
     if not args.no_fork and fork():
-        return
+        exit(0)
 
     global logfd, verbosity, osz_dir, url_prefix
     # Assign Log File Descriptor
