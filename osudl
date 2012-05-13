@@ -19,7 +19,7 @@ from tornado.ioloop import IOLoop
 class Visit(EmbeddedDocument):
     time=IntField(required=True)
     ip=StringField(required=True)
-    uid=IntField(required=True)
+    uid=IntField()
 
 class Osz(Document):
     name=StringField(required=True,primary_key=True)
