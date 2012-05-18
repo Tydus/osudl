@@ -75,11 +75,8 @@ class OsuDl(RequestHandler):
                     return fireAllandRemove(n,failed=True,body=response.body)
 
                 # Write DB
-                d=Osz.objects(name=n)
-                if d.count():
-                    # We already has one
-                    d=d[0]
-                else:
+                d=Osz.objects(name=n).first()
+                if not d:
                     # Create a new one
                     d=Osz(name=n)
                 d.long_name=response.headers['Content-Disposition'].split('"')[1]
