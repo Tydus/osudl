@@ -4,8 +4,8 @@ from time import time,ctime,gmtime
 from mongoengine import *
 from mongoengine.connection import ConnectionError
 from sys import stderr
-from os import makedirs, fork
-from os.path import isfile, isdir
+from os import makedirs,fork
+from os.path import isfile,isdir
 from urllib import quote
 from argparse import ArgumentParser
 from socket import error as SocketError
@@ -58,20 +58,20 @@ class OsuDl(RequestHandler):
     def fetch(self,n):
         global fetching
         if not fetching.get(n):
-            log(LOG_VERBOSE, "start fetching %s",n)
+            log(LOG_VERBOSE,"start fetching %s",n)
             fetching[n]=[]
             def func(response):
                 global fetching
 
-                log(LOG_VERBOSE, "finish fetching %s",n)
+                log(LOG_VERBOSE,"finish fetching %s",n)
                 if response.error:
-                    log(LOG_WARNING, "fetch %s failed: ",n,response.error)
+                    log(LOG_WARNING,"fetch %s failed: ",n,response.error)
                     return fireAllandRemove(n,error=response.error)
 
                 if not response.headers.get('Content-Disposition'):
                     # Failed (Down Quota Exceeded?)
                     # Fire subscripters for failure
-                    log(LOG_VERBOSE, "fetch %s failed: no Content-Disposition",n)
+                    log(LOG_VERBOSE,"fetch %s failed: no Content-Disposition",n)
                     return fireAllandRemove(n,failed=True,body=response.body)
 
                 # Write DB
@@ -124,19 +124,19 @@ class OsuDl(RequestHandler):
     def get(self,n):
         # Check if request has cookie
         if not self.request.headers.get('Cookie'):
-            log(LOG_WARNING, "No Cookie in request from %s", request.remote_ip)
+            log(LOG_WARNING,"No Cookie in request from %s",request.remote_ip)
             raise HTTPError(401)
 
         # Check if we has one in db
         d=Osz.objects(name=n).first()
         if not d:
-            log(LOG_INFO, "No record in db for %s",n)
+            log(LOG_INFO,"No record in db for %s",n)
             self.fetch(n)
             return
 
         if not isfile(osz_dir+'/'+d.file_path):
             # It's removed by someone else
-            log(LOG_INFO, "File of %s doesn't exists",n)
+            log(LOG_INFO,"File of %s doesn't exists",n)
             # Fetch it again
             self.fetch(n)
             return
@@ -161,22 +161,22 @@ class OsuDl(RequestHandler):
 def parse_args():
     ap=ArgumentParser(description='OsuDl Server')
 
-    ap.add_argument('-l','--listen', help='Listen port',default=8888,type=int)
+    ap.add_argument('-l','--listen',help='Listen port',default=8888,type=int)
 
-    ap.add_argument('--no-fork', help='Run in forground, for debug use',action='store_true')
-    ap.add_argument('-v','--verbose', help='Run in verbose mode, use more to be more verbosity',action='count',default=LOG_INFO)
-    ap.add_argument('-q','--quiet', help='Run in quiet mode',action='count',default=0)
-    #ap.add_argument('-p','--pid-file', help='PID file',default='/var/run/osudl.pid')
-    ap.add_argument('--log-file', help='Log file, use - for stderr',default='/var/log/osudl.log')
+    ap.add_argument('--no-fork',help='Run in forground, for debug use',action='store_true')
+    ap.add_argument('-v','--verbose',help='Run in verbose mode, use more to be more verbosity',action='count',default=LOG_INFO)
+    ap.add_argument('-q','--quiet',help='Run in quiet mode',action='count',default=0)
+    #ap.add_argument('-p','--pid-file',help='PID file',default='/var/run/osudl.pid')
+    ap.add_argument('--log-file',help='Log file, use - for stderr',default='/var/log/osudl.log')
 
-    ap.add_argument('-d','--osz-dir', help='Osz file dir',default='/data/osudl')
-    ap.add_argument('-u','--osz-url-prefix', help='Osz url prefix, must be ended with /',default='http://osz.tyimg.info/')
+    ap.add_argument('-d','--osz-dir',help='Osz file dir',default='/data/osudl')
+    ap.add_argument('-u','--osz-url-prefix',help='Osz url prefix, must be ended with /',default='http://osz.tyimg.info/')
 
-    ap.add_argument('--db-host', help='Database host name', default='127.0.0.1')
-    ap.add_argument('--db-port', help='Database port', default=27017,type=int)
-    ap.add_argument('--db-name', help='Database name', default='osudl')
-    ap.add_argument('--db-user', help='Database user name')
-    ap.add_argument('--db-pass', help='Database password')
+    ap.add_argument('--db-host',help='Database host name',default='127.0.0.1')
+    ap.add_argument('--db-port',help='Database port',default=27017,type=int)
+    ap.add_argument('--db-name',help='Database name',default='osudl')
+    ap.add_argument('--db-user',help='Database user name')
+    ap.add_argument('--db-pass',help='Database password')
 
     return ap.parse_args()
 
@@ -187,12 +187,12 @@ def main():
     if not args.no_fork and fork():
         exit(0)
 
-    global logfd, verbosity, osz_dir, url_prefix
+    global logfd,verbosity,osz_dir,url_prefix
     # Assign Log File Descriptor
     try:
         logfd=open(args.log_file,'a') if args.log_file != '-' else stderr
     except Exception:
-        print >>stderr, 'FATAL: Cannot write to Log file %s'%args.log_file
+        print >>stderr,'FATAL: Cannot write to Log file %s'%args.log_file
         exit(-1)
 
     # Calc verbosity
@@ -207,7 +207,7 @@ def main():
         try:
             makedirs(osz_dir)
         except Exception:
-            log(LOG_FATAL, 'Cannot create Osz dir %s'%osz_dir)
+            log(LOG_FATAL,'Cannot create Osz dir %s'%osz_dir)
             exit(-1)
 
     # Connect to DB
@@ -219,7 +219,7 @@ def main():
                 password=args.db_pass,
                )
     except ConnectionError:
-        log(LOG_FATAL, 'Cannot connect to DB at mongodb://%s:%d/%s'%(
+        log(LOG_FATAL,'Cannot connect to DB at mongodb://%s:%d/%s'%(
             args.db_host,
             args.db_port,
             args.db_name,
@@ -227,22 +227,22 @@ def main():
         exit(-1)
 
     # Run Server
-    server=HTTPServer(Application([(r'/d/([0-9]+n?)',OsuDl)]), xheaders=True)
+    server=HTTPServer(Application([(r'/d/([0-9]+n?)',OsuDl)]),xheaders=True)
     try:
         server.listen(args.listen)
     except SocketError:
-        log(LOG_FATAL, 'Cannot listen at 127.0.0.1:%d', args.listen)
+        log(LOG_FATAL,'Cannot listen at 127.0.0.1:%d',args.listen)
         exit(-1)
 
-    log(LOG_INFO, '*'*80)
-    log(LOG_INFO, 'OsuDl Server Started')
-    log(LOG_INFO, 'Listening at 127.0.0.1:%d', args.listen)
-    log(LOG_INFO, 'Daemon: %s', not args.no_fork)
-    log(LOG_INFO, 'Log File: %s', args.log_file if args.log_file != '-' else '<stderr>')
-    log(LOG_INFO, 'Log Verbosity: %d', verbosity)
-    log(LOG_INFO, 'osz Cache Dir: %s', osz_dir)
-    log(LOG_INFO, 'osz Download URL Prefix: %s', url_prefix)
-    log(LOG_INFO, '*'*80)
+    log(LOG_INFO,'*'*80)
+    log(LOG_INFO,'OsuDl Server Started')
+    log(LOG_INFO,'Listening at 127.0.0.1:%d',args.listen)
+    log(LOG_INFO,'Daemon: %s',not args.no_fork)
+    log(LOG_INFO,'Log File: %s',args.log_file if args.log_file != '-' else '<stderr>')
+    log(LOG_INFO,'Log Verbosity: %d',verbosity)
+    log(LOG_INFO,'osz Cache Dir: %s',osz_dir)
+    log(LOG_INFO,'osz Download URL Prefix: %s',url_prefix)
+    log(LOG_INFO,'*'*80)
 
     IOLoop.instance().start()
 
