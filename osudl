@@ -128,13 +128,12 @@ class OsuDl(RequestHandler):
             raise HTTPError(401)
 
         # Check if we has one in db
-        d=Osz.objects(name=n)
-        if d.count()==0:
+        d=Osz.objects(name=n).first()
+        if not d:
             log(LOG_INFO, "No record in db for %s",n)
             self.fetch(n)
             return
 
-        d=d[0]
         if not isfile(osz_dir+'/'+d.file_path):
             # It's removed by someone else
             log(LOG_INFO, "File of %s doesn't exists",n)
