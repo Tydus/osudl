@@ -20,7 +20,7 @@ server {
 		proxy_set_header X-Real-IP $remote_addr;
 		proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 		
-		sub_filter '<td width=33%></td>' '<td width=33%>OsuDl is © <a href="http://tydus.org" target="_blank">Tydus</a> 2012</td>';
+		sub_filter '<td width=33%></td>' '<td width=33%>OsuDl @ $server_addr   © <a href="http://tydus.org" target="_blank">Tydus</a> 2012</td>';
 		#sub_filter_types text/html;
 	}
 }
