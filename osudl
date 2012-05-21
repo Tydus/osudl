@@ -15,6 +15,19 @@ from tornado.httpclient import AsyncHTTPClient
 from tornado.httpserver import HTTPServer
 from tornado.ioloop import IOLoop
 
+# For backward compability of Python 2.6
+from sys import version_info
+if version_info<(2,7):
+    def is_zipfile(fd):
+        from zipfile import ZipFile
+        try:
+            ZipFile(fd,'r')
+            return True
+        except:
+            return False
+else:
+    from zipFile import is_zipfile
+
 # DB Schema
 class Visit(EmbeddedDocument):
     time=IntField(required=True)
@@ -29,6 +42,7 @@ class Osz(Document):
     last_visit=IntField()
     l_visit=ListField(EmbeddedDocumentField(Visit))
     meta={'indexes':['-last_visit']}
+
 
 def strtime(tm=None):
     return "%04d-%02d-%02d %02d:%02d:%02d"%gmtime(tm or time())[:6]
@@ -73,6 +87,12 @@ class OsuDl(RequestHandler):
                     # Fire subscripters for failure
                     log(LOG_VERBOSE,"fetch %s failed: no Content-Disposition",n)
                     return fireAllandRemove(n,failed=True,body=response.body)
+
+                if not is_zipfile(self.buffer):
+                    # Not a valid zipfile (Truncated?)
+                    # Fire subscripters for failure
+                    log(LOG_VERBOSE,"fetch %s failed: Failed Zipfile Integrety Check",n)
+                    return fireAllandRemove(n,failed=True,body="Failed to download, please try again")
 
                 # Write DB
                 d=Osz.objects(name=n).first()
