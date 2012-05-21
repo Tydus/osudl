@@ -88,7 +88,7 @@ class OsuDl(RequestHandler):
                     log(LOG_VERBOSE,"fetch %s failed: no Content-Disposition",n)
                     return fireAllandRemove(n,failed=True,body=response.body)
 
-                if not is_zipfile(self.buffer):
+                if not is_zipfile(response.buffer):
                     # Not a valid zipfile (Truncated?)
                     # Fire subscripters for failure
                     log(LOG_VERBOSE,"fetch %s failed: Failed Zipfile Integrety Check",n)
