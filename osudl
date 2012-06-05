@@ -26,7 +26,7 @@ if version_info<(2,7):
         except:
             return False
 else:
-    from zipFile import is_zipfile
+    from zipfile import is_zipfile
 
 # DB Schema
 class Visit(EmbeddedDocument):
@@ -214,6 +214,9 @@ def main():
 
     # Calc verbosity
     verbosity=args.verbose-args.quiet
+
+    import pdb
+    pdb.set_trace()
 
     # Osz Directory and url prefix
     osz_dir=args.osz_dir
