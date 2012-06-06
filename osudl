@@ -141,7 +141,7 @@ class OsuDl(RequestHandler):
     def get(self,n):
         # Check if request has cookie
         if not self.request.headers.get('Cookie'):
-            log(LOG_WARNING,"No Cookie in request from %s",request.remote_ip)
+            log(LOG_WARNING,"No Cookie in request from %s",self.request.remote_ip)
             raise HTTPError(401)
 
         # Check if we has one in db
