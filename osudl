@@ -215,9 +215,6 @@ def main():
     # Calc verbosity
     verbosity=args.verbose-args.quiet
 
-    import pdb
-    pdb.set_trace()
-
     # Osz Directory and url prefix
     osz_dir=args.osz_dir
     url_prefix=args.osz_url_prefix
