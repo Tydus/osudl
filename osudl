@@ -81,18 +81,20 @@ class FetchSource:
     If error, then filename==""
 
     '''
-    def fetch(self,n,request,callback):
+    @staticmethod
+    def fetch(n,request,callback):
         raise NotImplementedError()
 
 class OfficialSource(FetchSource):
     priority=-1000
    
+    @staticmethod
     @engine
-    def fetch(self,n,request,callback):
+    def fetch(n,request,callback):
         log(LOG_VERBOSE,"start fetching %s",n)
         response=yield Task(AsyncHTTPClient().fetch,
                     'http://osu.ppy.sh/d/'+n,
-                    headers=self.request.headers,
+                    headers=request.headers,
                     #headers={
                     #    'Cookie':self.request.headers['Cookie'],
                     #    'X-Real-IP':self.request.remote_ip,
@@ -154,13 +156,13 @@ class OsuDl(RequestHandler):
         for i in fetchSources:
             kwargs=(yield Task(
                     i.fetch,
-                    n=n,
-                    request=request,
+                    n,
+                    self.request,
                 ))[1]
-            if kwargs.has_key('error'):
+            if kwargs.has_key('error') or kwargs.get('failed'):
                 if i==fetchSources[-1]:
                     # The last one, return error to user
-                    fireAllandRemove(n,*args,**kwargs)
+                    fireAllandRemove(n,**kwargs)
                     return
                 else:
                     # Try next one
