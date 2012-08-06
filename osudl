@@ -59,6 +59,75 @@ def log(level,s,*args):
         print >>logfd,"[%19s][%d]"%(strtime(),level)+s%tuple(args)
         logfd.flush()
 
+
+class FetchSource:
+    '''
+    An abstract source for OsuDl to fetch osz file
+
+    This can be a website or ftp server, etc.
+    Just feed it with an n, then get the result or error
+
+    '''
+
+    #Priority of the source
+    priority=NotImplemented
+
+    '''
+    Fetch function
+    
+    Feed it with a string n and the original request, then a callback
+    the callback will be called with result
+
+    If error, then filename==""
+
+    '''
+    def fetch(self,n,request,callback):
+        raise NotImplementedError()
+
+class OfficialSource(FetchSource):
+    priority=-1000
+   
+    @engine
+    def fetch(self,n,request,callback):
+        log(LOG_VERBOSE,"start fetching %s",n)
+        response=yield Task(AsyncHTTPClient().fetch,
+                    'http://osu.ppy.sh/d/'+n,
+                    headers=self.request.headers,
+                    #headers={
+                    #    'Cookie':self.request.headers['Cookie'],
+                    #    'X-Real-IP':self.request.remote_ip,
+                    #    },
+                    # Set request timeout to 5min
+                    request_timeout=300,
+                )
+
+        log(LOG_VERBOSE,"finish fetching %s",n)
+        if response.error:
+            log(LOG_WARNING,"fetch %s failed: ",n,response.error)
+            callback(error=response.error)
+            return
+
+        if not response.headers.get('Content-Disposition'):
+            # Failed (Down Quota Exceeded?)
+            # Fire subscripters for failure
+            log(LOG_VERBOSE,"fetch %s failed: no Content-Disposition",n)
+            callback(failed=True,body=response.body)
+            return
+
+        if not is_zipfile(response.buffer):
+            # Not a valid zipfile (Truncated?)
+            # Fire subscripters for failure
+            log(LOG_VERBOSE,"fetch %s failed: Failed Zipfile Integrety Check",n)
+            callback(failed=True,body="Failed to download, please try again")
+            return
+
+        callback(
+                filename=response.headers['Content-Disposition'].split('"')[1],
+                body=response.body,
+            )
+
+fetchSources=[OfficialSource]
+
 # Indicates which ones are Fetching
 fetching={}
 
@@ -75,58 +144,43 @@ class OsuDl(RequestHandler):
         global fetching
         if not fetching.get(n):
             # I'm the first, go ahead fetching
-            log(LOG_VERBOSE,"start fetching %s",n)
             fetching[n]=[self.callback]
         else:
             # Return and wait other finished fetching
             fetching[n].append(self.callback)
             return
 
-        cookie=self.request.headers['Cookie']
-        response=yield Task(AsyncHTTPClient().fetch,
-                    'http://osu.ppy.sh/d/'+n,
-                    headers=self.request.headers,
-                    #headers={
-                    #    'Cookie':self.request.headers['Cookie'],
-                    #    'X-Real-IP':self.request.remote_ip,
-                    #    },
-                    # Set request timeout to 5min
-                    request_timeout=300,
-                )
+        # Try Fetch from sources one by one here
+        for i in fetchSources:
+            kwargs=(yield Task(
+                    i.fetch,
+                    n=n,
+                    request=request,
+                ))[1]
+            if kwargs.has_key('error'):
+                if i==fetchSources[-1]:
+                    # The last one, return error to user
+                    fireAllandRemove(n,*args,**kwargs)
+                    return
+                else:
+                    # Try next one
+                    continue
 
-        log(LOG_VERBOSE,"finish fetching %s",n)
-        if response.error:
-            log(LOG_WARNING,"fetch %s failed: ",n,response.error)
-            fireAllandRemove(n,error=response.error)
-            return
-
-        if not response.headers.get('Content-Disposition'):
-            # Failed (Down Quota Exceeded?)
-            # Fire subscripters for failure
-            log(LOG_VERBOSE,"fetch %s failed: no Content-Disposition",n)
-            fireAllandRemove(n,failed=True,body=response.body)
-            return
-
-        if not is_zipfile(response.buffer):
-            # Not a valid zipfile (Truncated?)
-            # Fire subscripters for failure
-            log(LOG_VERBOSE,"fetch %s failed: Failed Zipfile Integrety Check",n)
-            fireAllandRemove(n,failed=True,body="Failed to download, please try again")
-            return
+            break
 
         # Write DB
         d=Osz.objects(name=n).first()
         if not d:
             # Create a new one
             d=Osz(name=n)
-        d.long_name=response.headers['Content-Disposition'].split('"')[1]
-        d.size=len(response.body)
+        d.long_name=kwargs['filename']
+        d.size=len(kwargs['body'])
         d.file_path=d.long_name
         d.save()
 
         # Write File
         f=file(osz_dir+'/'+d.file_path,'wb')
-        f.write(response.body)
+        f.write(kwargs['body'])
         f.close()
 
         # Fire subscripters, get again
